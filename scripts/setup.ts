@@ -61,6 +61,7 @@ function printBanner(): void {
   console.log(" |_|  |_|_|\\___|\\__\\___|_|\\_\\");
   console.log("");
   console.log(" AI assistant in WhatsApp, powered by Claude Code");
+  console.log(" by Karol Mroszczyk — kmxsoftware.com");
   console.log("");
   console.log("=".repeat(52));
   console.log("");

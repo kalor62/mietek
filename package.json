@@ -20,7 +20,8 @@
     "type": "git",
     "url": "https://github.com/kalor62/mietek.git"
   },
-  "author": "kalor62",
+  "author": "Karol Mroszczyk <https://kmxsoftware.com>",
+  "homepage": "https://kmxsoftware.com",
   "license": "MIT",
   "keywords": [
     "whatsapp",

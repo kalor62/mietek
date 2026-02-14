@@ -98,6 +98,10 @@ Verifies SQLite DB, Claude CLI, WhatsApp auth, and PM2 processes.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
 
+## Author
+
+**Karol Mroszczyk** — [kmxsoftware.com](https://kmxsoftware.com)
+
 ## License
 
 MIT — see [LICENSE](LICENSE)
