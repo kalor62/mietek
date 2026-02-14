@@ -4,6 +4,7 @@ import { db } from "../lib/db.js";
 import { messageQueue, reminders } from "../lib/schema.js";
 import { config } from "../lib/config.js";
 import { createLogger } from "../lib/logger.js";
+import { t } from "../lib/i18n.js";
 import { checkDocker, checkDisk, checkPM2 } from "./checks.js";
 import { isQuietHours, shouldSendAlert, recordAlert, queueForSummary } from "./notifier.js";
 import { buildDailySummary } from "./daily-summary.js";
@@ -118,7 +119,7 @@ function checkReminders(): void {
     .filter((r) => r.dueAt <= now);
 
   for (const reminder of dueReminders) {
-    enqueueMessage(`⏰ Przypomnienie: ${reminder.text}`);
+    enqueueMessage(t().reminder(reminder.text));
 
     if (reminder.recurrence) {
       // Reschedule recurring reminders

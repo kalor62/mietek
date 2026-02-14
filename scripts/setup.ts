@@ -124,6 +124,9 @@ async function setupEnv(rl: readline.Interface): Promise<void> {
     template = [
       "OWNER_JID=48XXXXXXXXX@s.whatsapp.net",
       "OWNER_NAME=User",
+      "BOT_NAME=Mietek",
+      "BOT_GENDER=male",
+      "BOT_LANG=pl",
       "TRIGGER_WORD=HeyMietek",
       "QUIET_HOUR_START=23",
       "QUIET_HOUR_END=7",
@@ -133,17 +136,41 @@ async function setupEnv(rl: readline.Interface): Promise<void> {
   // Prompt for OWNER_NAME
   const ownerName = (await ask(rl, "  Your name (used in assistant prompts) [User]: ")) || "User";
 
-  // Prompt for TRIGGER_WORD
-  const triggerWord =
-    (await ask(rl, "  Trigger word for invoking from any chat [HeyMietek]: ")) || "HeyMietek";
+  // Prompt for BOT_NAME
+  const botName = (await ask(rl, "  Bot name [Mietek]: ")) || "Mietek";
+
+  // Prompt for BOT_GENDER
+  let botGender = "";
+  while (botGender !== "male" && botGender !== "female") {
+    botGender = (await ask(rl, "  Bot gender — male or female? [male]: ")) || "male";
+    if (botGender !== "male" && botGender !== "female") {
+      console.log("    Please enter 'male' or 'female'.");
+    }
+  }
+
+  // Prompt for BOT_LANG
+  let botLang = "";
+  while (!["pl", "en"].includes(botLang)) {
+    botLang = (await ask(rl, "  Bot language — pl or en? [pl]: ")) || "pl";
+    if (!["pl", "en"].includes(botLang)) {
+      console.log("    Supported languages: pl (Polish), en (English).");
+    }
+  }
+
+  // Auto-generate trigger word from bot name
+  const triggerWord = `Hey${botName}`;
+  console.log(`\n  Trigger word: ${triggerWord}`);
 
   // Replace values in template
   let envContent = template;
   envContent = envContent.replace(/^OWNER_NAME=.*$/m, `OWNER_NAME=${ownerName}`);
+  envContent = envContent.replace(/^BOT_NAME=.*$/m, `BOT_NAME=${botName}`);
+  envContent = envContent.replace(/^BOT_GENDER=.*$/m, `BOT_GENDER=${botGender}`);
+  envContent = envContent.replace(/^BOT_LANG=.*$/m, `BOT_LANG=${botLang}`);
   envContent = envContent.replace(/^TRIGGER_WORD=.*$/m, `TRIGGER_WORD=${triggerWord}`);
 
   fs.writeFileSync(ENV_PATH, envContent, "utf8");
-  console.log(`\n  Created .env with OWNER_NAME=${ownerName}, TRIGGER_WORD=${triggerWord}\n`);
+  console.log(`  Created .env with BOT_NAME=${botName} (${botGender}, ${botLang}), TRIGGER_WORD=${triggerWord}\n`);
 }
 
 function ensureDataDir(): void {

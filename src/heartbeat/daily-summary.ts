@@ -1,22 +1,23 @@
 import { desc, gte } from "drizzle-orm";
 import { db } from "../lib/db.js";
 import { messageQueue } from "../lib/schema.js";
-import { config } from "../lib/config.js";
 import { getSystemSummary } from "./checks.js";
 import { getPendingSummaryItems } from "./notifier.js";
+import { t, r } from "../lib/i18n.js";
 
 export function buildDailySummary(): string {
   const parts: string[] = [];
+  const lang = t();
 
   // System status
-  parts.push(`☀️ *Dzień dobry ${config.ownerName}!*\n`);
-  parts.push("*Status systemu:*");
+  parts.push(`${r(lang.goodMorning)}\n`);
+  parts.push(lang.systemStatus);
   parts.push(getSystemSummary());
 
   // Overnight alerts
   const overnightItems = getPendingSummaryItems();
   if (overnightItems.length > 0) {
-    parts.push("\n*Alerty z nocy:*");
+    parts.push(`\n${lang.overnightAlerts}`);
     for (const item of overnightItems) {
       parts.push(`• ${item.message}`);
     }
@@ -31,19 +32,18 @@ export function buildDailySummary(): string {
     .orderBy(desc(messageQueue.createdAt))
     .all();
 
-  parts.push(`\n*Wczorajsza aktywność:*`);
-  parts.push(`• ${recentMessages.length} wiadomości przetworzonych`);
+  parts.push(`\n${lang.yesterdayActivity}`);
+  parts.push(lang.messagesProcessed(recentMessages.length));
 
   // Date
-  const today = new Date().toLocaleDateString("pl-PL", {
+  const today = new Date().toLocaleDateString(lang.dateLocale, {
     weekday: "long",
     year: "numeric",
     month: "long",
     day: "numeric",
-    timeZone: "Europe/Warsaw",
+    timeZone: lang.timezone,
   });
   parts.push(`\n📅 ${today}`);
 
   return parts.join("\n");
 }
-

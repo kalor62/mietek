@@ -93,7 +93,9 @@ Skills can leverage MCP tools configured in `mcp-config.json`.
 | `OWNER_JID` | Yes | — | Your WhatsApp JID (auto-detected during setup) |
 | `OWNER_NAME` | No | `User` | Your name (used in assistant prompts) |
 | `BOT_NAME` | No | `Mietek` | Bot name (shown in message headers) |
-| `TRIGGER_WORD` | No | `HeyMietek` | Word to invoke Mietek from any chat |
+| `BOT_GENDER` | No | `male` | Bot gender — `male` or `female` (affects grammar) |
+| `BOT_LANG` | No | `pl` | Bot language — `pl` (Polish) or `en` (English) |
+| `TRIGGER_WORD` | No | `Hey<BotName>` | Auto-generated from bot name, or set manually |
 | `QUIET_HOUR_START` | No | `23` | Start of quiet hours (alerts batched) |
 | `QUIET_HOUR_END` | No | `7` | End of quiet hours |
 

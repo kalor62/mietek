@@ -4,6 +4,8 @@ import { db } from "../lib/db.js";
 import { userMemory, reminders, outboundMessages } from "../lib/schema.js";
 import { createLogger } from "../lib/logger.js";
 import { clearSession, getSessionId } from "./claude.js";
+import { config } from "../lib/config.js";
+import { t } from "../lib/i18n.js";
 
 const log = createLogger("processor");
 
@@ -88,6 +90,7 @@ function handleStatus(): CommandResult {
 }
 
 function handleMemory(): CommandResult {
+  const lang = t();
   const memories = db
     .select()
     .from(userMemory)
@@ -95,10 +98,10 @@ function handleMemory(): CommandResult {
     .all();
 
   if (memories.length === 0) {
-    return { handled: true, response: "Nie mam jeszcze żadnych zapamiętanych faktów." };
+    return { handled: true, response: lang.noMemory };
   }
 
-  const lines = ["*Zapamiętane fakty:*\n"];
+  const lines = [lang.memoryTitle];
   const grouped: Record<string, typeof memories> = {};
 
   for (const mem of memories) {
@@ -118,7 +121,8 @@ function handleMemory(): CommandResult {
 }
 
 function handleForget(key: string): CommandResult {
-  if (!key) return { handled: true, response: "Użycie: /forget <klucz>" };
+  const lang = t();
+  if (!key) return { handled: true, response: lang.forgetUsage };
 
   const existing = db
     .select()
@@ -127,7 +131,7 @@ function handleForget(key: string): CommandResult {
     .get();
 
   if (!existing) {
-    return { handled: true, response: `Nie znalazłem klucza "${key}" w pamięci.` };
+    return { handled: true, response: lang.forgetNotFound(key) };
   }
 
   db.update(userMemory)
@@ -136,18 +140,15 @@ function handleForget(key: string): CommandResult {
     .run();
 
   log.info(`Forgot memory: ${key}`);
-  return { handled: true, response: `Zapomniałem: ${key}` };
+  return { handled: true, response: lang.forgot(key) };
 }
 
 function handleRemind(input: string): CommandResult {
-  // Parse: /remind <text> za <number> <unit>
-  const zaMatch = input.match(/^(.+?)\s+za\s+(\d+)\s*(min(?:ut[ęy]?)?|godz(?:in[ęy]?)?|h|sekund[ęy]?|s|dni|dzień|d)\s*$/i);
+  const lang = t();
+  const zaMatch = input.match(lang.remindPattern);
 
   if (!zaMatch) {
-    return {
-      handled: true,
-      response: "Użycie: /remind <tekst> za <liczba> <min/godz/dni>\nNp: /remind spotkanie za 30 min",
-    };
+    return { handled: true, response: lang.remindUsage };
   }
 
   const text = zaMatch[1].trim();
@@ -155,13 +156,13 @@ function handleRemind(input: string): CommandResult {
   const unitRaw = zaMatch[3].toLowerCase();
 
   let ms: number;
-  if (unitRaw.startsWith("min") || unitRaw === "m") {
+  if (lang.remindUnitMinute(unitRaw)) {
     ms = amount * 60_000;
-  } else if (unitRaw.startsWith("godz") || unitRaw === "h") {
+  } else if (lang.remindUnitHour(unitRaw)) {
     ms = amount * 3_600_000;
-  } else if (unitRaw.startsWith("sekund") || unitRaw === "s") {
+  } else if (lang.remindUnitSecond(unitRaw)) {
     ms = amount * 1_000;
-  } else if (unitRaw.startsWith("dn") || unitRaw.startsWith("dzie") || unitRaw === "d") {
+  } else if (lang.remindUnitDay(unitRaw)) {
     ms = amount * 86_400_000;
   } else {
     ms = amount * 60_000; // default minutes
@@ -178,38 +179,34 @@ function handleRemind(input: string): CommandResult {
     })
     .run();
 
-  const timeStr = dueAt.toLocaleTimeString("pl-PL", {
+  const timeStr = dueAt.toLocaleTimeString(lang.dateLocale, {
     hour: "2-digit",
     minute: "2-digit",
-    timeZone: "Europe/Warsaw",
+    timeZone: lang.timezone,
   });
 
   log.info(`Reminder set: "${text}" at ${dueAt.toISOString()}`);
-  return {
-    handled: true,
-    response: `⏰ Przypomnienie ustawione: "${text}" o ${timeStr}`,
-  };
+  return { handled: true, response: lang.reminderSet(text, timeStr) };
 }
 
 function handleClear(): CommandResult {
+  const lang = t();
   const hadSession = getSessionId() !== null;
   clearSession();
   return {
     handled: true,
-    response: hadSession
-      ? "Sesja wyczyszczona. Następna wiadomość zacznie nową rozmowę."
-      : "Brak aktywnej sesji. Następna wiadomość zacznie nową rozmowę.",
+    response: hadSession ? lang.sessionCleared : lang.noActiveSession,
   };
 }
 
 function handleApproveOutbound(idStr: string): CommandResult {
-  // If no ID given, approve the latest pending
+  const lang = t();
   const msg = idStr
     ? db.select().from(outboundMessages).where(eq(outboundMessages.id, Number(idStr))).get()
     : db.select().from(outboundMessages).where(eq(outboundMessages.status, "pending_approval")).orderBy(outboundMessages.id).limit(1).get();
 
-  if (!msg) return { handled: true, response: "Nie znaleziono wiadomości do wysłania." };
-  if (msg.status !== "pending_approval") return { handled: true, response: `Wiadomość #${msg.id} już obsłużona (${msg.status}).` };
+  if (!msg) return { handled: true, response: lang.outboundNotFound };
+  if (msg.status !== "pending_approval") return { handled: true, response: lang.outboundAlreadyHandled(msg.id, msg.status) };
 
   db.update(outboundMessages)
     .set({ status: "approved", approvedAt: new Date() })
@@ -217,16 +214,17 @@ function handleApproveOutbound(idStr: string): CommandResult {
     .run();
 
   log.action(`Outbound #${msg.id} approved -> ${msg.targetPhone}`);
-  return { handled: true, response: `✅ Zatwierdzono wysłanie do ${msg.targetPhone}.` };
+  return { handled: true, response: lang.outboundApproved(msg.targetPhone) };
 }
 
 function handleRejectOutbound(idStr: string): CommandResult {
+  const lang = t();
   const msg = idStr
     ? db.select().from(outboundMessages).where(eq(outboundMessages.id, Number(idStr))).get()
     : db.select().from(outboundMessages).where(eq(outboundMessages.status, "pending_approval")).orderBy(outboundMessages.id).limit(1).get();
 
-  if (!msg) return { handled: true, response: "Nie znaleziono wiadomości do odrzucenia." };
-  if (msg.status !== "pending_approval") return { handled: true, response: `Wiadomość #${msg.id} już obsłużona (${msg.status}).` };
+  if (!msg) return { handled: true, response: lang.outboundNotFound };
+  if (msg.status !== "pending_approval") return { handled: true, response: lang.outboundAlreadyHandled(msg.id, msg.status) };
 
   db.update(outboundMessages)
     .set({ status: "rejected" })
@@ -234,5 +232,5 @@ function handleRejectOutbound(idStr: string): CommandResult {
     .run();
 
   log.action(`Outbound #${msg.id} rejected`);
-  return { handled: true, response: `❌ Odrzucono wiadomość do ${msg.targetPhone}.` };
+  return { handled: true, response: lang.outboundRejected(msg.targetPhone) };
 }
