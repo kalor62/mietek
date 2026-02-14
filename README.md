@@ -110,7 +110,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
 
 ## Author
 
-**Karol Mroszczyk** — [kmxsoftware.com](https://kmxsoftware.com)
+**Karol Mroszczyk** — [kmxsoftware.com](https://kmxsoftware.com) · [𝕏 @mrok86](https://x.com/mrok86)
 
 ## License
 

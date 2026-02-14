@@ -61,7 +61,7 @@ function printBanner(): void {
   console.log(" |_|  |_|_|\\___|\\__\\___|_|\\_\\");
   console.log("");
   console.log(" AI assistant in WhatsApp, powered by Claude Code");
-  console.log(" by Karol Mroszczyk — kmxsoftware.com");
+  console.log(" by Karol Mroszczyk — kmxsoftware.com · @mrok86");
   console.log("");
   console.log("=".repeat(52));
   console.log("");
@@ -279,21 +279,33 @@ function testClaude(): boolean {
   }
 }
 
+function startServices(): boolean {
+  console.log("Step 6: Starting Mietek...\n");
+
+  try {
+    execSync("pm2 start ecosystem.config.cjs", {
+      cwd: ROOT_DIR,
+      encoding: "utf8",
+      stdio: "inherit",
+    });
+    console.log("");
+    return true;
+  } catch {
+    console.log("  Failed to start PM2 processes.");
+    console.log("  Try manually: pm2 start ecosystem.config.cjs\n");
+    return false;
+  }
+}
+
 function printNextSteps(): void {
   console.log("=".repeat(52));
   console.log("");
-  console.log("  Setup complete! Next steps:");
+  console.log("  Mietek is running! Send a WhatsApp message to test it.");
   console.log("");
-  console.log("  1. Start all services:");
-  console.log("     pm2 start ecosystem.config.cjs");
-  console.log("");
-  console.log("  2. Check logs:");
-  console.log("     pm2 logs");
-  console.log("");
-  console.log("  3. Run health check:");
-  console.log("     npm run health");
-  console.log("");
-  console.log("  4. Send a message to your WhatsApp!");
+  console.log("  Useful commands:");
+  console.log("     pm2 logs          — view logs");
+  console.log("     pm2 status        — check process status");
+  console.log("     npm run health    — run health check");
   console.log("");
 }
 
@@ -330,7 +342,10 @@ async function main() {
   // Step 6: Test Claude CLI
   testClaude();
 
-  // Step 7: Next steps
+  // Step 7: Start PM2 services
+  startServices();
+
+  // Done
   printNextSteps();
 
   process.exit(0);
