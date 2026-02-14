@@ -12,6 +12,34 @@ Three isolated PM2 processes communicate via SQLite:
 - **Processor** — Invokes Claude Code CLI (`claude -p`), manages context, memory, and commands
 - **Heartbeat** — System monitoring, reminders, daily summaries
 
+## Bring AI to Any Chat
+
+> This is Mietek's killer feature.
+
+Most AI chatbots live in their own window. Mietek lives in **your WhatsApp** — and you can summon it into any conversation: a group chat with friends, a 1:1 with your partner, a work thread. Just type:
+
+```
+HeyMietek translate this to English
+```
+
+```
+HeyMietek summarize what we talked about
+```
+
+```
+HeyMietek settle this debate — is a hot dog a sandwich?
+```
+
+The response goes directly into that chat. Everyone sees it. It feels like you just invited the smartest person in the room.
+
+**Only you can activate it.** Mietek responds exclusively to messages sent from the owner's account (`fromMe`). If someone else in the group types `HeyMietek` — nothing happens. Your friends can't accidentally (or intentionally) trigger it. This is by design: your Claude subscription, your rules.
+
+> Per-chat permissions (allowing specific people to invoke Mietek) are on the roadmap but not yet implemented.
+
+The trigger word is customizable — set `TRIGGER_WORD` in `.env` to whatever you want.
+
+---
+
 ## Quick Start
 
 ```bash
@@ -59,16 +87,6 @@ Send a WhatsApp message to yourself — Mietek will respond!
 | `/remind <text> za <time>` | Set a reminder (e.g., `/remind meeting za 30 min`) |
 | `/clear` | Clear current conversation session |
 | `/sudo <message>` | Full bash access mode (use with caution) |
-
-### Trigger Word
-
-Invoke Mietek from **any** WhatsApp chat by prefixing your message with the trigger word (default: `HeyMietek`). Only works for `fromMe` messages — other people in the chat can't trigger it.
-
-```
-HeyMietek what's the weather like?
-```
-
-Customize via `TRIGGER_WORD` in `.env`.
 
 ## Custom Skills
 
