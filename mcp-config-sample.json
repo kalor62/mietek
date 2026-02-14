@@ -1,0 +1,32 @@
+{
+  "mcpServers": {
+    "gmail": {
+      "command": "node",
+      "args": ["/path/to/mcp-gmail/dist/index.js"],
+      "cwd": "/path/to/mcp-gmail"
+    },
+    "google-calendar": {
+      "command": "node",
+      "args": ["/path/to/mcp-google-calendar/build/index.js"],
+      "env": {
+        "GOOGLE_OAUTH_CREDENTIALS": "/path/to/gcp-oauth.keys.json"
+      },
+      "cwd": "/path/to/mcp-google-calendar"
+    },
+    "mariadb": {
+      "command": "npx",
+      "args": ["-y", "@benborla29/mcp-server-mysql"],
+      "env": {
+        "MYSQL_HOST": "localhost",
+        "MYSQL_PORT": "3306",
+        "MYSQL_USER": "your_user",
+        "MYSQL_PASS": "your_password",
+        "MYSQL_DB": "your_database",
+        "ALLOW_INSERT_OPERATION": "false",
+        "ALLOW_UPDATE_OPERATION": "false",
+        "ALLOW_DELETE_OPERATION": "false",
+        "ALLOW_DDL_OPERATION": "false"
+      }
+    }
+  }
+}

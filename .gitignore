@@ -1,0 +1,19 @@
+node_modules/
+dist/
+
+# Data
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# Secrets
+.env
+credentials.json
+mcp-config.json
+
+# Claude Code local config
+.claude/
+
+# Logs
+*.log

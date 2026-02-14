@@ -1,0 +1,46 @@
+{
+  "name": "mietek",
+  "version": "1.0.0",
+  "description": "AI assistant in WhatsApp, powered by your Claude Code subscription",
+  "type": "module",
+  "scripts": {
+    "bridge": "tsx src/bridge/index.ts",
+    "processor": "tsx src/processor/index.ts",
+    "heartbeat": "tsx src/heartbeat/index.ts",
+    "setup": "tsx scripts/setup.ts",
+    "test-claude": "tsx scripts/test-claude.ts",
+    "health": "tsx scripts/health.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kalor62/mietek.git"
+  },
+  "author": "kalor62",
+  "license": "MIT",
+  "keywords": [
+    "whatsapp",
+    "ai",
+    "assistant",
+    "claude",
+    "chatbot"
+  ],
+  "dependencies": {
+    "@whiskeysockets/baileys": "^7.0.0-rc.9",
+    "better-sqlite3": "^12.6.2",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.45.1",
+    "qrcode-terminal": "^0.12.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22",
+    "drizzle-kit": "^0.31.8",
+    "tsx": "^4.19.0",
+    "typescript": "^5"
+  }
+}
