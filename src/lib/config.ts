@@ -6,6 +6,7 @@ dotenv.config({ path: path.join(process.cwd(), ".env") });
 export const config = {
   ownerJid: process.env.OWNER_JID || "",
   ownerName: process.env.OWNER_NAME || "User",
+  botName: process.env.BOT_NAME || "Mietek",
   triggerWord: process.env.TRIGGER_WORD || "HeyMietek",
   quietHourStart: Number(process.env.QUIET_HOUR_START) || 23,
   quietHourEnd: Number(process.env.QUIET_HOUR_END) || 7,
