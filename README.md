@@ -27,7 +27,7 @@ HeyMietek summarize what we talked about
 ```
 
 ```
-HeyMietek settle this debate — is a hot dog a sandwich?
+HeyMietek say hello, explain who you are and where you coming from
 ```
 
 The response goes directly into that chat. Everyone sees it. It feels like you just invited the smartest person in the room.
