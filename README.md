@@ -19,14 +19,6 @@ Three isolated PM2 processes communicate via SQLite:
 Most AI chatbots live in their own window. Mietek lives in **your WhatsApp** — and you can summon it into any conversation: a group chat with friends, a 1:1 with your partner, a work thread. Just type:
 
 ```
-HeyMietek translate this to English
-```
-
-```
-HeyMietek summarize what we talked about
-```
-
-```
 HeyMietek say hello, explain who you are and where you coming from
 ```
 
