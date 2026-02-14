@@ -1,4 +1,4 @@
-import { desc, eq, and, gt } from "drizzle-orm";
+import { desc, eq, and, gt, inArray } from "drizzle-orm";
 import { db } from "../lib/db.js";
 import { alertHistory, pendingSummaryItems } from "../lib/schema.js";
 import { config } from "../lib/config.js";
@@ -71,9 +71,12 @@ export function queueForSummary(check: CheckResult): void {
 export function getPendingSummaryItems(): { type: string; message: string }[] {
   const items = db.select().from(pendingSummaryItems).all();
 
-  // Clear after reading
+  // Delete only the specific IDs we read to avoid race condition
   if (items.length > 0) {
-    db.delete(pendingSummaryItems).run();
+    const ids = items.map((item) => item.id);
+    db.delete(pendingSummaryItems)
+      .where(inArray(pendingSummaryItems.id, ids))
+      .run();
   }
 
   return items;

@@ -73,6 +73,17 @@ sqlite.exec(`
     message TEXT NOT NULL,
     created_at INTEGER
   );
+
+  CREATE TABLE IF NOT EXISTS outbound_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    target_phone TEXT NOT NULL,
+    message TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending_approval',
+    session_id TEXT,
+    created_at INTEGER,
+    approved_at INTEGER,
+    sent_at INTEGER
+  );
 `);
 
 export const db = drizzle(sqlite, { schema });

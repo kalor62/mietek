@@ -26,7 +26,7 @@ export function extractAndApplyMemoryUpdates(response: string): string {
     }
 
     // Remove the memory block from the response
-    cleanResponse = cleanResponse.replace(match[0], "").trim();
+    cleanResponse = cleanResponse.replaceAll(match[0], "").trim();
   }
 
   return cleanResponse;

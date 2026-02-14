@@ -67,7 +67,10 @@ export async function connectWhatsApp(): Promise<WASocket> {
         log.warn(`Connection closed: ${reason}. Reconnect: ${shouldReconnect}`);
 
         if (shouldReconnect) {
-          setTimeout(() => connectWhatsApp(), 5000);
+          setTimeout(() => connectWhatsApp().catch(err => {
+            log.error(`Reconnection failed: ${err}`);
+            process.exit(1);
+          }), 5000);
         } else {
           log.error("Logged out - delete data/wa-auth and re-scan QR");
           process.exit(1);

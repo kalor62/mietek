@@ -14,6 +14,7 @@ export interface ClaudeResult {
   response: string;
   sessionId?: string;
   error?: string;
+  retryWithFullContext?: boolean;
 }
 
 // Active session - persists across messages, reset by /clear or new day
@@ -30,7 +31,7 @@ export function clearSession(): void {
 
 export function resumeLastSession(): void {
   const last = db
-    .select({ sessionId: messageQueue.sessionId })
+    .select({ sessionId: messageQueue.sessionId, createdAt: messageQueue.createdAt })
     .from(messageQueue)
     .where(isNotNull(messageQueue.sessionId))
     .orderBy(desc(messageQueue.id))
@@ -38,6 +39,13 @@ export function resumeLastSession(): void {
     .get();
 
   if (last?.sessionId) {
+    // Don't resume sessions older than 1 hour
+    const oneHourMs = 60 * 60 * 1000;
+    const messageAge = last.createdAt ? Date.now() - new Date(last.createdAt).getTime() : Infinity;
+    if (messageAge > oneHourMs) {
+      log.info(`Last session ${last.sessionId.slice(0, 8)} is stale (${Math.round(messageAge / 60000)}min old), starting fresh`);
+      return;
+    }
     currentSessionId = last.sessionId;
     log.action(`Resumed previous session: ${currentSessionId.slice(0, 8)}`);
   } else {
@@ -113,11 +121,16 @@ export function invokeClaude(
 
     log.error(`Claude invocation failed: ${errMsg}`);
 
-    // If resume failed, try once more with a fresh session (not applicable for oneShot)
+    // If resume failed, signal caller to retry with full context
     if (isResume && !forceNewSession) {
-      log.warn("Resume failed, retrying with fresh session");
+      log.warn("Resume failed, signaling retry with full context");
       currentSessionId = null;
-      return invokeClaude(prompt, { sudo, forceNewSession: true });
+      return {
+        success: false,
+        response: "",
+        error: errMsg,
+        retryWithFullContext: true,
+      };
     }
 
     return {

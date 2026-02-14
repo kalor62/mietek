@@ -72,6 +72,12 @@ export async function pollAndSendResponses(): Promise<void> {
 
       log.info(`Sending to JID: ${targetJid} (original sender: ${msg.senderJid})`);
 
+      // Set sentAt BEFORE sending to prevent duplicate sends if bridge crashes mid-send (at-most-once)
+      db.update(messageQueue)
+        .set({ sentAt: new Date() })
+        .where(eq(messageQueue.id, msg.id))
+        .run();
+
       for (const chunk of chunks) {
         const result = await sock.sendMessage(targetJid, { text: chunk });
         log.info(`sendMessage result: ${JSON.stringify(result?.key || "no key")}`);
@@ -81,14 +87,10 @@ export async function pollAndSendResponses(): Promise<void> {
         }
       }
 
-      db.update(messageQueue)
-        .set({ sentAt: new Date() })
-        .where(eq(messageQueue.id, msg.id))
-        .run();
-
       log.info(`Sent response for message ${msg.id} (${chunks.length} chunk(s))`);
     } catch (err) {
-      log.error(`Failed to send response for message ${msg.id}: ${err}`);
+      // sentAt already set (at-most-once): message won't be retried to avoid duplicate sends
+      log.error(`Failed to send response for message ${msg.id} (marked sent, delivery uncertain): ${err}`);
     }
   }
 }
@@ -129,6 +131,9 @@ export async function sendApprovedOutbound(): Promise<void> {
   }
 }
 
+// Track the JID we're currently showing typing to
+let typingTargetJid: string | null = null;
+
 export async function showTypingForProcessing(): Promise<void> {
   const sock = getSocket();
   if (!sock) return;
@@ -145,19 +150,30 @@ export async function showTypingForProcessing(): Promise<void> {
     .get();
 
   if (processing) {
+    // Determine typing target: use senderJid for external chats, fall back to ownerJid for LID
+    const targetJid = processing.senderJid.endsWith("@lid")
+      ? ownerJid
+      : processing.senderJid.replace(/:\d+@/, "@");
+
     // Re-send composing every poll cycle to keep the indicator alive
     try {
-      if (!isShowingTyping) {
-        await sock.presenceSubscribe(ownerJid);
+      if (!isShowingTyping || typingTargetJid !== targetJid) {
+        // Stop typing on previous target if it changed
+        if (isShowingTyping && typingTargetJid && typingTargetJid !== targetJid) {
+          await sock.sendPresenceUpdate("paused", typingTargetJid);
+        }
+        await sock.presenceSubscribe(targetJid);
+        typingTargetJid = targetJid;
         isShowingTyping = true;
       }
-      await sock.sendPresenceUpdate("composing", ownerJid);
+      await sock.sendPresenceUpdate("composing", targetJid);
     } catch { /* non-critical: typing indicator */ }
   } else if (isShowingTyping) {
     // No longer processing - stop typing indicator
     try {
-      await sock.sendPresenceUpdate("paused", ownerJid);
+      await sock.sendPresenceUpdate("paused", typingTargetJid || ownerJid);
     } catch { /* non-critical: typing indicator */ }
     isShowingTyping = false;
+    typingTargetJid = null;
   }
 }

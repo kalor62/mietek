@@ -3,6 +3,8 @@ import { sqlite } from "./db.js";
 type LogLevel = "info" | "warn" | "error" | "action";
 type LogSource = "bridge" | "processor" | "heartbeat" | "system";
 
+let logInsertCount = 0;
+
 export function createLogger(source: LogSource) {
   return {
     info: (msg: string) => log(msg, "info", source),
@@ -28,9 +30,12 @@ function log(message: string, level: LogLevel, source: LogSource): void {
     sqlite
       .prepare("INSERT INTO bot_logs (level, source, message, created_at) VALUES (?, ?, ?, ?)")
       .run(level, source, message, Date.now());
-    sqlite
-      .prepare("DELETE FROM bot_logs WHERE id NOT IN (SELECT id FROM bot_logs ORDER BY id DESC LIMIT 1000)")
-      .run();
+    logInsertCount++;
+    if (logInsertCount % 100 === 0) {
+      sqlite
+        .prepare("DELETE FROM bot_logs WHERE id NOT IN (SELECT id FROM bot_logs ORDER BY id DESC LIMIT 1000)")
+        .run();
+    }
   } catch {
     // don't fail if log write fails
   }

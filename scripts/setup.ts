@@ -217,6 +217,8 @@ function connectWhatsApp(): Promise<string> {
             return;
           }
           console.log(`\n  Connection closed (${reason}), retrying...`);
+          // Clean up old socket before reconnecting
+          sock.end(undefined);
           // Re-attempt connection
           connectWhatsApp().then(resolve, reject);
         }

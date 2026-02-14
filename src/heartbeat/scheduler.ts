@@ -1,3 +1,4 @@
+import { readFileSync, writeFileSync } from "fs";
 import { eq, lte } from "drizzle-orm";
 import { db } from "../lib/db.js";
 import { messageQueue, reminders } from "../lib/schema.js";
@@ -5,7 +6,9 @@ import { config } from "../lib/config.js";
 import { createLogger } from "../lib/logger.js";
 import { checkDocker, checkDisk, checkPM2 } from "./checks.js";
 import { isQuietHours, shouldSendAlert, recordAlert, queueForSummary } from "./notifier.js";
-import { generateSmartSummary } from "./daily-summary.js";
+import { buildDailySummary } from "./daily-summary.js";
+
+const LAST_DAILY_SUMMARY_PATH = "data/last-daily-summary.txt";
 
 const log = createLogger("heartbeat");
 
@@ -18,6 +21,11 @@ interface ScheduledCheck {
 
 export function createScheduler(): { run: () => void } {
   let lastDailySummary = "";
+  try {
+    lastDailySummary = readFileSync(LAST_DAILY_SUMMARY_PATH, "utf8").trim();
+  } catch {
+    // File doesn't exist yet, will be created on first summary
+  }
 
   const checks: ScheduledCheck[] = [
     {
@@ -57,9 +65,10 @@ export function createScheduler(): { run: () => void } {
         // Send daily summary at 8:00
         if (hour === 8 && minute < 2 && lastDailySummary !== today) {
           lastDailySummary = today;
+          writeFileSync(LAST_DAILY_SUMMARY_PATH, today);
           log.action("Generating daily summary");
 
-          const summary = generateSmartSummary();
+          const summary = buildDailySummary();
           enqueueMessage(summary);
         }
       },
@@ -86,7 +95,7 @@ export function createScheduler(): { run: () => void } {
 
 function runChecks(results: import("./checks.js").CheckResult[]): void {
   for (const check of results) {
-    if (isQuietHours()) {
+    if (isQuietHours() && check.severity !== "critical") {
       queueForSummary(check);
       continue;
     }
@@ -137,6 +146,9 @@ function calculateNextDue(current: Date, recurrence: string): Date {
     next.setDate(next.getDate() + 1);
   } else if (recurrence === "weekly") {
     next.setDate(next.getDate() + 7);
+  } else {
+    log.warn(`Unknown recurrence value "${recurrence}", defaulting to daily`);
+    next.setDate(next.getDate() + 1);
   }
 
   return next;

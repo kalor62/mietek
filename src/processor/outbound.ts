@@ -48,7 +48,7 @@ export function extractAndQueueOutbound(response: string): string {
         `\nNapisz /wyślij ${inserted.id} lub /odrzuć ${inserted.id}`,
       ].join("\n");
 
-      cleanResponse = cleanResponse.replace(match[0], confirmText);
+      cleanResponse = cleanResponse.replaceAll(match[0], confirmText);
     } catch (err) {
       log.warn(`Failed to parse send_message block: ${err}`);
     }
