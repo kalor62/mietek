@@ -55,16 +55,20 @@ export function resumeLastSession(): void {
 
 export function invokeClaude(
   prompt: string,
-  options: { sudo?: boolean; forceNewSession?: boolean; oneShot?: boolean } = {}
+  options: { sudo?: boolean; forceNewSession?: boolean; oneShot?: boolean; resumeSessionId?: string } = {}
 ): ClaudeResult {
-  const { sudo = false, forceNewSession = false, oneShot = false } = options;
+  const { sudo = false, forceNewSession = false, oneShot = false, resumeSessionId } = options;
 
-  const isResume = !oneShot && currentSessionId !== null && !forceNewSession;
+  const isResume = !oneShot && !resumeSessionId && currentSessionId !== null && !forceNewSession;
 
   const args: string[] = [];
   let sessionIdForThisCall: string | null = null;
 
-  if (oneShot) {
+  if (resumeSessionId) {
+    // External resume: resume a specific session, don't touch currentSessionId
+    sessionIdForThisCall = resumeSessionId;
+    args.push("-p", prompt, "--resume", resumeSessionId);
+  } else if (oneShot) {
     // One-shot: fresh session UUID, does NOT touch currentSessionId
     sessionIdForThisCall = randomUUID();
     args.push("-p", prompt, "--session-id", sessionIdForThisCall);
@@ -92,7 +96,7 @@ export function invokeClaude(
   }
 
   log.info(
-    `Invoking claude -p (resume=${isResume}, oneShot=${oneShot}, session=${sessionIdForThisCall?.slice(0, 8)}, sudo=${sudo}, prompt=${prompt.length} chars)`
+    `Invoking claude -p (resume=${isResume}, oneShot=${oneShot}, resumeExt=${!!resumeSessionId}, session=${sessionIdForThisCall?.slice(0, 8)}, sudo=${sudo}, prompt=${prompt.length} chars)`
   );
 
   try {
@@ -120,6 +124,12 @@ export function invokeClaude(
       "unknown error";
 
     log.error(`Claude invocation failed: ${errMsg}`);
+
+    // If external resume failed, don't retry — let the caller handle fallback
+    if (resumeSessionId) {
+      log.warn(`External resume failed for session ${resumeSessionId.slice(0, 8)}`);
+      return { success: false, response: `Przepraszam, wystąpił błąd: ${errMsg.slice(0, 200)}`, error: errMsg };
+    }
 
     // If resume failed, signal caller to retry with full context
     if (isResume && !forceNewSession) {

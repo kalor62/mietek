@@ -49,6 +49,10 @@ function isOwnerChat(senderJid: string): boolean {
 
 const log = createLogger("processor");
 
+// Track external chat sessions (HeyMietek) per senderJid
+const externalSessions = new Map<string, { sessionId: string; count: number }>();
+const MAX_EXTERNAL_ITERATIONS = 15;
+
 export async function processingLoop(): Promise<void> {
   log.action(`Processor started (PID: ${process.pid})`);
 
@@ -88,14 +92,46 @@ async function processNextMessage(): Promise<void> {
   log.info(`Processing message ${msg.id}: ${msg.text.slice(0, 80)}`);
 
   try {
-    // External chat (HeyMietek) — one-shot, no commands, no memory
+    // External chat (HeyMietek) — session per chat, max 15 iterations
     if (!isOwnerChat(msg.senderJid)) {
-      const prompt = buildExternalChatContext(msg);
-      const result = invokeClaude(prompt, { oneShot: true });
+      const session = externalSessions.get(msg.senderJid);
+      let result: ReturnType<typeof invokeClaude>;
+      let count: number;
+
+      if (session && session.count < MAX_EXTERNAL_ITERATIONS) {
+        // Resume existing session
+        result = invokeClaude(msg.text, { resumeSessionId: session.sessionId });
+        if (result.success) {
+          count = session.count + 1;
+          externalSessions.set(msg.senderJid, { sessionId: session.sessionId, count });
+        } else {
+          // Resume failed — fallback: reset session, start fresh with full context
+          log.warn(`[HeyMietek] Resume failed for ${msg.senderJid}, starting fresh session`);
+          const prompt = buildExternalChatContext(msg);
+          result = invokeClaude(prompt, { oneShot: true });
+          count = 1;
+          if (result.sessionId) {
+            externalSessions.set(msg.senderJid, { sessionId: result.sessionId, count });
+          }
+        }
+      } else {
+        // New session or limit reached
+        if (session && session.count >= MAX_EXTERNAL_ITERATIONS) {
+          log.info(`[HeyMietek] Session limit reached for ${msg.senderJid}, starting fresh`);
+        }
+        const prompt = buildExternalChatContext(msg);
+        result = invokeClaude(prompt, { oneShot: true });
+        count = 1;
+        if (result.sessionId) {
+          externalSessions.set(msg.senderJid, { sessionId: result.sessionId, count });
+        }
+      }
+
+      const finalResponse = `(${count}/${MAX_EXTERNAL_ITERATIONS}) ${result.response}`;
 
       db.update(messageQueue)
         .set({
-          response: result.response,
+          response: finalResponse,
           status: result.success ? "completed" : "failed",
           sessionId: result.sessionId || null,
           completedAt: new Date(),
@@ -103,7 +139,7 @@ async function processNextMessage(): Promise<void> {
         .where(eq(messageQueue.id, msg.id))
         .run();
 
-      log.info(`[HeyMietek] Message ${msg.id} ${result.success ? "completed" : "failed"}`);
+      log.info(`[HeyMietek] Message ${msg.id} ${result.success ? "completed" : "failed"} (${count}/${MAX_EXTERNAL_ITERATIONS})`);
       return;
     }
 
